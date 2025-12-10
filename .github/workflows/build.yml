@@ -1,5 +1,7 @@
 name: build
+
 on:
+  workflow_dispatch:     #
   push:
     branches: [ main ]
   pull_request:
@@ -33,5 +35,4 @@ jobs:
             DEVELOPMENT_TEAM="" \
             PROVISIONING_PROFILE_SPECIFIER="" \
             OTHER_CODE_SIGN_FLAGS="--no-cert" \
-            -allowProvisioningUpdates \
             build
