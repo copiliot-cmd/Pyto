@@ -1,21 +1,37 @@
-# https://docs.github.com/en/actions/use-cases-and-examples/deploying/installing-an-apple-certificate-on-macos-runners-for-xcode-development
-
 name: build
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   pull_request:
+
 jobs:
   build:
     runs-on: macos-latest
+
     steps:
       - uses: actions/checkout@v5
+
       - uses: actions/setup-python@v6
         with:
           python-version: "3.10"
-          allow-prereleases: true
+
       - run: pip install --upgrade pip
-      - run: sudo xcode-select -switch /Applications/Xcode.app/Contents/Developer
-      - run: ./setup.sh
-      - run: xcodebuild -workspace Pyto.xcworkspace -scheme Pyto -configuration Release
+
+      - name: Select Xcode
+        run: sudo xcode-select -switch /Applications/Xcode.app/Contents/Developer
+
+      - name: Build Pyto (unsigned)
+        run: |
+          xcodebuild \
+            -workspace Pyto.xcworkspace \
+            -scheme Pyto \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_IDENTITY="" \
+            DEVELOPMENT_TEAM="" \
+            PROVISIONING_PROFILE_SPECIFIER="" \
+            OTHER_CODE_SIGN_FLAGS="--no-cert" \
+            -allowProvisioningUpdates \
+            build
