@@ -1,27 +1,59 @@
 name: build
 
 on:
-  workflow_dispatch:     # <-- THIS ENABLES THE RUN BUTTON
   push:
     branches: [ main ]
   pull_request:
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: macos-latest
 
     steps:
-      - uses: actions/checkout@v5
+      # 1️⃣ Checkout repo + submodules
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          submodules: recursive
 
-      - uses: actions/setup-python@v6
+      # 2️⃣ Select Xcode (stable)
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -switch /Applications/Xcode.app/Contents/Developer
+          xcodebuild -version
+
+      # 3️⃣ Install Python (Pyto expects it)
+      - name: Setup Python
+        uses: actions/setup-python@v6
         with:
           python-version: "3.10"
 
-      - run: pip install --upgrade pip
+      # 4️⃣ Install CocoaPods
+      - name: Install CocoaPods
+        run: |
+          sudo gem install cocoapods
+          pod --version
 
-      - name: Select Xcode
-        run: sudo xcode-select -switch /Applications/Xcode.app/Contents/Developer
+      # 5️⃣ Install Pods
+      - name: Pod install
+        run: |
+          pod install --repo-update
 
+      # 6️⃣ Build ios_system dependencies (IF script exists)
+      - name: Build ios_system (optional)
+        run: |
+          if [ -f "./build_ios_system.sh" ]; then
+            chmod +x ./build_ios_system.sh
+            ./build_ios_system.sh
+          elif [ -f "./setup.sh" ]; then
+            chmod +x ./setup.sh
+            ./setup.sh
+          else
+            echo "No ios_system build script found — assuming frameworks are vendored"
+          fi
+
+      # 7️⃣ Build Pyto (unsigned, CI-safe)
       - name: Build Pyto (unsigned)
         run: |
           xcodebuild \
@@ -34,5 +66,4 @@ jobs:
             CODE_SIGNING_IDENTITY="" \
             DEVELOPMENT_TEAM="" \
             PROVISIONING_PROFILE_SPECIFIER="" \
-            OTHER_CODE_SIGN_FLAGS="--no-cert" \
             build
